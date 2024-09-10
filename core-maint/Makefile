@@ -8,7 +8,11 @@ CC=g++
 INCDIR=./gm_graph/inc
 LIBDIR=./gm_graph/lib
 LIB=gmgraph
+ifeq ($(OS),Windows_NT) 
+	LIB += -lws2_32
+endif
 LFLAGS=-L$(LIBDIR) -l$(LIB)
+
 
 #CFLAGS=-c -I. -std=c++0x -Wfatal-errors
 #CFLAGS=-c -I. -I$(INCDIR) -std=c++0x -Wfatal-errors

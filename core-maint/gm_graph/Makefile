@@ -5,7 +5,7 @@ BIN = ../bin
 INC = inc
 SRC = src
 OBJ = obj
-CFLAGS = -O3 -g -I$(INC) -fopenmp -Wall 
+CFLAGS = -O3 -g -I$(INC) -fopenmp -Wall -fpermissive
 #CFLAGS = -g -I$(INC) -fopenmp -Wall 
 OUT =$(LIB)/libgmgraph.a 
 

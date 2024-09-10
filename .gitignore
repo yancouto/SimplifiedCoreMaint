@@ -1,0 +1,5 @@
+# Ignore all compilation intermediates
+*.o
+*.a
+*.exe
+

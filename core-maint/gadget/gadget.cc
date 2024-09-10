@@ -158,7 +158,7 @@ std::vector<std::pair<int, int>> CSRReadEdges(char* const path,
 {
     //void pin_CPU()
     
-    {   
+    /*{
         printf("set pin CPU\n");
         #pragma omp parallel 
         {
@@ -169,7 +169,7 @@ std::vector<std::pair<int, int>> CSRReadEdges(char* const path,
             CPU_SET(omp_get_thread_num(), &CPU);
             pthread_setaffinity_np(thread, sizeof(CPU), &CPU);
         }
-    }
+    }*/
     
 
     gm_graph G;

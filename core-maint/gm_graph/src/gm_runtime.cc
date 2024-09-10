@@ -1,4 +1,5 @@
 #include "gm_runtime.h"
+#include <random>
 
 //===============================
 gm_mem_helper _GM_MEM;
@@ -82,6 +83,12 @@ void gm_runtime::expand_random_seeds(int old, int n) {
     }
 
     delete[] old_seeds;
+}
+
+std:: default_random_engine generator;
+std::uniform_real_distribution<double> distr(0.0,1.0);
+double erand48(int X){
+    return distr(generator);
 }
 
 double gm_runtime::uniform(int tid) {
