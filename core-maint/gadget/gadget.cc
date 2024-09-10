@@ -76,7 +76,7 @@ std::vector<std::pair<int, int>> ReadTempEdgesS(const char* const path,
 /*read edges by shuffle*/
 std::vector<std::pair<int, int>> ReadEdgesS(const char* const path,
                                             int* const n, int* const m) {
-  srand(time(NULL));
+  //srand(time(NULL));
 
   auto file = fopen(path, "r");
   fscanf(file, "%d %d", n, m);
@@ -235,7 +235,7 @@ std::vector<std::pair<int, int>> CSRReadEdges(char* const path,
 
      // randomly shuffle the edges
     if (1 == shuffle) {
-        srand(time(NULL));
+        //srand(time(NULL));
         for (size_t e = 0; e < edges.size(); ++e) {
             const size_t e2 = e + rand() % (edges.size() - e);
             std::swap(edges[e], edges[e2]);
@@ -297,7 +297,7 @@ void OutputSampleEdgeCoreNumber(const char* const path, std::vector<int> &core,
     std::vector<int> flag(n, 0);
     for (int num = 0; num < 1; num++) {
         //sample
-        srand(time(NULL));
+        //srand(time(NULL));
         for (size_t e = 0; e < edges.size(); ++e) {
             const size_t e2 = e + rand() % (edges.size() - e);
             std::swap(edges[e], edges[e2]);
@@ -348,7 +348,7 @@ std::vector<std::pair<int, int>>  sampleEdges(const char* const path, std::vecto
     int new_size = edges.size() * percent /100;
     edges2.reserve(new_size);
 
-    srand(time(NULL));
+    //srand(time(NULL));
     int edge_size = edges.size();
 
     for (auto it = edges.begin() ; it != edges.end(); ++it) {

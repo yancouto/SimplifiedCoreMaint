@@ -7,6 +7,10 @@
 #include <map>
 using namespace std;
 
+extern int cnt_PQ;
+
+namespace yan {
+
 
 //for graph
 const size_t MAX_INCREASE_CORE = 1024*16; //max increased core number, should be large enough
@@ -42,7 +46,6 @@ typedef unsigned int subtag_t; // 32bit label subtag;
 const size_t MAX_TAG = 0xffffffffffffffff;
 const size_t INIT_TAG_GAP = 0xffffffff; // 32 bit unsigned integer
 const size_t MAX_SUBTAG = 0xffffffff; // 32 bit unsigned integer
-extern int cnt_PQ;
 /*#define WITH_SUBTAG */ // this is defined in makefile
 
 #else // !!!my machine doesn't support this __int128 well. 
@@ -68,39 +71,83 @@ struct DATA {
 #endif
 };
 
-struct CompareOrder { 
-    bool operator()(DATA const& a, DATA const& b) 
+namespace SeqCM {
+    enum{
+        WHITE   = 0, /*initial*/
+        DARK, /*visited in PQ wating to be propagated*/
+        GRAY    = 1, /*visited, not in V* but in V+*/
+        BLACK   = 2, /*visited, in V* and in V+*/
+    };
+
+    class Node {
+    public:
+        //Computer Core number
+        deg_t degout; // deg+
+        deg_t degin;  // deg*
+        deg_t mcd;    //for edge removing.
+       
+        //Order Maintenance
+        node_t pre;  //double linked list
+        node_t next; //double linked list
+        tag_t tag;   // label tag for each item range is 0 - n^2
+#ifdef WITH_SUBTAG
+        subtag_t subtag; // range 0 to logn.
+#endif
+
+        color_t color; // black, white, gray.
+        label_t inQ;   // node is in priority queue PQ
+        label_t inR;    // node is in R can be defined with color
+        //label_t outR;   // node is already backward.
+        Node(){
+            degout = degin = mcd = tag = 0; // init to 0 
+#ifdef WITH_SUBTAG
+            subtag =0;
+#endif
+            pre = next = NONE;
+            color = WHITE;
+            inQ = false;
+            inR = false; 
+        }
+    };
+}
+
+struct CompareOrder {
+    vector<SeqCM::Node> &V;
+    bool operator()(node_t const& a, node_t const& b) 
     { 
+        tag_t tag_a = V[a].tag;
+        tag_t tag_b = V[b].tag;
         // return "true" if "a" is ordered  
         // before "b", for example:
 #ifdef WITH_SUBTAG
-        if (likely(a.value != b.value))
-            return a.value > b.value;
+        if (likely(tag_a != tag_b))
+            return tag_a > tag_b;
         else 
-            return a.value2 > b.value2; 
+            return V[a].tag2 > V[b].tag2; 
             
 #else
-        return a.value > b.value;
+        return tag_a > tag_b;
 #endif
     } 
-}; 
+};
 
+template<typename T>
+std::vector<T> reserved_vec(size_t size) {
+    std::vector<T> v;
+    v.reserve(size);
+    return std::move(v);
+}
 
 class PRIORITY_Q {
 private:
-    typedef std::priority_queue<DATA, std::vector<DATA>, CompareOrder> PQ;
+    typedef std::priority_queue<node_t, std::vector<node_t>, CompareOrder> PQ;
     PQ pq_;
+    std::vector<SeqCM::Node> &V;
 
 public:
-    PRIORITY_Q(size_t size) {
-        std::vector<DATA> container;
-        container.reserve(size);
-        CompareOrder compare;
-        pq_ = PQ(compare, std::move(container));
-    } 
-    PRIORITY_Q(){}
-    inline void push(DATA d) { pq_.push(d); cnt_PQ++;}
-    inline DATA top() {return pq_.top();}
+    PRIORITY_Q(size_t size, std::vector<SeqCM::Node> &V): pq_(CompareOrder{V}, std::move(reserved_vec<node_t>(size))), V(V) {}
+    inline void push(DATA d) { pq_.push(d.key); cnt_PQ++;}
+    inline DATA top() {return DATA(pq_.top(), V[pq_.top()].tag);}
     inline void pop() {pq_.pop();}
     inline bool empty() {return pq_.empty(); }
     inline void clear() { while (!pq_.empty()){pq_.pop();} }
@@ -238,44 +285,7 @@ private:
 };
 #endif 
 
-enum{
-    WHITE   = 0, /*initial*/
-    DARK, /*visited in PQ wating to be propagated*/
-    GRAY    = 1, /*visited, not in V* but in V+*/
-    BLACK   = 2, /*visited, in V* and in V+*/
-};
-
 namespace SeqCM{
-    class Node {
-    public:
-        //Computer Core number
-        deg_t degout; // deg+
-        deg_t degin;  // deg*
-        deg_t mcd;    //for edge removing.
-       
-        //Order Maintenance
-        node_t pre;  //double linked list
-        node_t next; //double linked list
-        tag_t tag;   // label tag for each item range is 0 - n^2
-#ifdef WITH_SUBTAG
-        subtag_t subtag; // range 0 to logn.
-#endif
-
-        color_t color; // black, white, gray.
-        label_t inQ;   // node is in priority queue PQ
-        label_t inR;    // node is in R can be defined with color
-        //label_t outR;   // node is already backward.
-        Node(){
-            degout = degin = mcd = tag = 0; // init to 0 
-#ifdef WITH_SUBTAG
-            subtag =0;
-#endif
-            pre = next = NONE;
-            color = WHITE;
-            inQ = false;
-            inR = false; 
-        }
-    };
 
     /*first version, with one level tags (label), only tag is used.
     * take O(logn) time for insert*/
@@ -430,3 +440,4 @@ namespace ParCM{
 }
 #endif
 
+}

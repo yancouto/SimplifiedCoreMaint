@@ -16,7 +16,7 @@ LFLAGS=-L$(LIBDIR) -l$(LIB)
 
 #CFLAGS=-c -I. -std=c++0x -Wfatal-errors
 #CFLAGS=-c -I. -I$(INCDIR) -std=c++0x -Wfatal-errors
-CFLAGS=-c -I. -I$(INCDIR) -fopenmp  -std=gnu++0x -fpermissive
+CFLAGS=-c -I. -I$(INCDIR) -fopenmp  -std=gnu++0x -fpermissive -fdiagnostics-color=always
 CFLAGS2=-I. -I$(INCDIR) -fopenmp  -std=gnu++0x -fpermissive
 INCFILES = $(shell ls $(INCDIR))
 H_FILES = $(addprefix $(INCDIR)/, $(INCFILES))
@@ -33,20 +33,20 @@ prof: CC+= -pg -Wall -O2 -g
 
 
 
-core: maindebug.o gadget.o heap.o treap.o traversal.o glist.o ours.o ./gm_graph/lib/libgmgraph.a
-	$(CC) $(CFLAGS2) maindebug.o gadget.o heap.o treap.o traversal.o glist.o ours.o $(LFLAGS) -o core
+core: maindebug.o gadget.o heap.o treap.o traversal.o glist.o ours.o yan.o ./gm_graph/lib/libgmgraph.a
+	$(CC) $(CFLAGS2) maindebug.o gadget.o heap.o treap.o traversal.o glist.o ours.o yan.o $(LFLAGS) -o core
 	
-core2: maindebug.o gadget.o heap.o treap.o traversal.o glist.o ours.o ./gm_graph/lib/libgmgraph.a
-	$(CC) $(CFLAGS2) maindebug.o gadget.o heap.o treap.o traversal.o glist.o ours.o $(LFLAGS) -o core2
+core2: maindebug.o gadget.o heap.o treap.o traversal.o glist.o ours.o yan.o ./gm_graph/lib/libgmgraph.a
+	$(CC) $(CFLAGS2) maindebug.o gadget.o heap.o treap.o traversal.o glist.o ours.o yan.o $(LFLAGS) -o core2
 
-dcore: maindebug.o gadget.o heap.o treap.o traversal.o glist.o ours.o ./gm_graph/lib/libgmgraph.a
-	$(CC) $(CFLAGS2) maindebug.o gadget.o heap.o treap.o traversal.o glist.o ours.o $(LFLAGS) -o dcore
+dcore: maindebug.o gadget.o heap.o treap.o traversal.o glist.o ours.o yan.o ./gm_graph/lib/libgmgraph.a
+	$(CC) $(CFLAGS2) maindebug.o gadget.o heap.o treap.o traversal.o glist.o ours.o yan.o $(LFLAGS) -o dcore
 
-debug: maindebug.o gadget.o heap.o treap.o traversal.o glist.o ours.o ./gm_graph/lib/libgmgraph.a
-	$(CC) $(CFLAGS2) maindebug.o gadget.o heap.o treap.o traversal.o glist.o ours.o $(LFLAGS) -o debug
+debug: maindebug.o gadget.o heap.o treap.o traversal.o glist.o ours.o yan.o ./gm_graph/lib/libgmgraph.a
+	$(CC) $(CFLAGS2) maindebug.o gadget.o heap.o treap.o traversal.o glist.o ours.o yan.o $(LFLAGS) -o debug
 
-prof: maindebug.o gadget.o heap.o treap.o traversal.o glist.o ours.o ./gm_graph/lib/libgmgraph.a
-	$(CC) $(CFLAGS2) maindebug.o gadget.o heap.o treap.o traversal.o glist.o ours.o $(LFLAGS) -o prof
+prof: maindebug.o gadget.o heap.o treap.o traversal.o glist.o ours.o yan.o ./gm_graph/lib/libgmgraph.a
+	$(CC) $(CFLAGS2) maindebug.o gadget.o heap.o treap.o traversal.o glist.o ours.o yan.o $(LFLAGS) -o prof
 
 
 maindebug.o: maindebug.cc
@@ -70,6 +70,9 @@ glist.o: glist/glist.cc
 
 ours.o: ours8/core-maint.cpp
 	$(CC) $(CFLAGS) ours8/core-maint.cpp -o ours.o
+
+yan.o: yan/core-maint.cpp
+	$(CC) $(CFLAGS) yan/core-maint.cpp -o yan.o
 
 clean: 
 	rm -f ./*.o

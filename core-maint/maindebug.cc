@@ -12,6 +12,7 @@
 #include "glist/glist.h"
 #include "traversal/traversal.h"
 #include "ours8/core-maint.h"
+#include "yan/core-maint.h"
 
 /*counting*/
 int cnt_edge = 0;
@@ -27,6 +28,7 @@ int global_check_num = 0;
 extern const bool WITH_E2;
 
 int main(int argc, char** argv) {
+  srand(42);
   char path[128];      // path of input graph
   int method = 0;
   double ratio = 0.0;  // ratio of edges to insert
@@ -173,12 +175,15 @@ int main(int argc, char** argv) {
   // initialize the core component
   core::CoreMaintenance* cm = nullptr;
   SeqCM::CoreMaint *ourcm = nullptr;
+  yan::SeqCM::CoreMaint *yancm = nullptr;
   if (method%10 == 1) { //traversal
     cm = new core::Traversal(n);
   } else if (method%10 == 2) { //glist
     cm = new core::GLIST(n);
   } else if (method%10 == 3 ) {
     ourcm = new SeqCM::CoreMaint(n, graph, core);
+  } else if (method%10 == 4) {
+    yancm = new yan::SeqCM::CoreMaint(n, graph, core);
   } else {
       printf("wrong method!");
       exit(0);
@@ -212,7 +217,12 @@ int main(int argc, char** argv) {
 
     const auto init_beg = std::chrono::steady_clock::now();
     if (method%10 != 3) { //3 is ours method 
-      cm->ComputeCore(graph, true, core);
+      if (method == 4) {
+        yancm->ComputeCore(graph, core, order_v, true);
+        yancm->Init(order_v);
+      }
+      else
+        cm->ComputeCore(graph, true, core);
     } else { // ours 
       // compute the k-order by bz. 
       ourcm->ComputeCore(graph, core, order_v, true);
@@ -245,7 +255,8 @@ int main(int argc, char** argv) {
  
   if (method%10 != 3) {
     for (int i = m2; i < m; ++i) {
-      cm->Insert(edges[i].first, edges[i].second, graph, core);
+      if (method%10 == 4) yancm->EdgeInsert(edges[i].first, edges[i].second);
+      else cm->Insert(edges[i].first, edges[i].second, graph, core);
 #ifdef DEBUG
       //cm->ComputeCore(graph, false, tmp_core);
       //ASSERT_INFO(tmp_core == core, "wrong result after insert");
@@ -295,8 +306,13 @@ int main(int argc, char** argv) {
     ERROR("check: insert", false);
     
     if (method%10 != 3) {
-      cm->ComputeCore(graph, false, tmp_core);
-      cm->Check(graph, core);
+      if (method == 4) {
+        yancm->ComputeCore(graph, tmp_core, order_v, false);
+        yancm->Check(-1, -1, -1, tmp_core, order_v);
+      } else {
+        cm->ComputeCore(graph, false, tmp_core);
+        cm->Check(graph, core);
+      }
     }else {
       ourcm->ComputeCore(graph, tmp_core, order_v, false);
       ourcm->Check(-1, -1, -1, tmp_core, order_v);
@@ -320,7 +336,8 @@ REMOVE:
   
     if (method%10 != 3) {
         for (int i = m - 1; i >= m2; --i) {
-            cm->Remove(edges[i].first, edges[i].second, graph, core);
+            if (method%10 == 4) yancm->EdgeRemove(edges[i].first, edges[i].second);
+            else cm->Remove(edges[i].first, edges[i].second, graph, core);
         }
     } else {
       for (int i = m - 1; i >= m2; --i) {
@@ -360,10 +377,15 @@ REMOVE:
   {
     ERROR("check: remove", false);
     if (method%10 != 3) {
-      std::vector<int> tmp_core(n);
-      cm->ComputeCore(graph, false, tmp_core);
-      ASSERT_INFO(tmp_core == core, "wrong result after remove");
-      cm->Check(graph, core);
+      if (method == 4) {
+        yancm->ComputeCore(graph, tmp_core, order_v, false);
+        yancm->Check(-1, -1, -1, tmp_core, order_v);
+      } else {
+        std::vector<int> tmp_core(n);
+        cm->ComputeCore(graph, false, tmp_core);
+        ASSERT_INFO(tmp_core == core, "wrong result after remove");
+        cm->Check(graph, core);
+      }
     } else {
         ourcm->ComputeCore(graph, tmp_core, order_v, false);
         ourcm->Check(-1, -1, -1, tmp_core, order_v);
@@ -375,4 +397,5 @@ REMOVE:
 END:
   if (cm != nullptr) delete cm;
   if (ourcm != nullptr) delete ourcm;
+  if (yancm != nullptr) delete yancm;
 }

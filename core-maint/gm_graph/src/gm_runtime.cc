@@ -85,10 +85,16 @@ void gm_runtime::expand_random_seeds(int old, int n) {
     delete[] old_seeds;
 }
 
-std:: default_random_engine generator;
-std::uniform_real_distribution<double> distr(0.0,1.0);
-double erand48(int X){
-    return distr(generator);
+double erand48(unsigned short xsubi[3]) {
+    unsigned long a = 0x5DEECE66DL;
+    unsigned long c = 0xBL;
+    unsigned long m = (1L << 48);
+    unsigned long x = ((unsigned long) xsubi[0] << 16) + xsubi[1];
+    x = (a * x + c) % m;
+    xsubi[0] = (unsigned short) (x >> 16);
+    xsubi[1] = (unsigned short) (x & 0xFFFF);
+    xsubi[2] = (unsigned short) ((xsubi[2] + 1) & 0xFFFF);
+    return (double) x / (double) m;
 }
 
 double gm_runtime::uniform(int tid) {

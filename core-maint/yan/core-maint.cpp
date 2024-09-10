@@ -11,11 +11,14 @@ extern int cnt_tag;
 extern int cnt_edge; // for debug
 extern int cnt_edge2; // for debug
 
+namespace yan {
+
 extern const bool WITH_E2 = false;
+
 
 /********SeqCM************************************/
 SeqCM::CoreMaint::CoreMaint(size_t n, graph_t &graph, vector<core_t> &core):
-        n{n}, graph{graph}, core{core} {
+        n{n}, graph{graph}, core{core}, PQ(n, V) {
     
     const size_t reserve_size = n; //2^15
     Vblack.reserve(reserve_size);
@@ -25,7 +28,6 @@ SeqCM::CoreMaint::CoreMaint(size_t n, graph_t &graph, vector<core_t> &core):
     Vcolor.reserve(reserve_size);
     
     R = QUEUE(reserve_size); //2^14
-    PQ = PRIORITY_Q(reserve_size);
     PQ2 = PRIORITY_Q2(reserve_size); 
 
     /* init the Order List by k-order odv */
@@ -273,7 +275,7 @@ int SeqCM::CoreMaint::OrderInsert(node_t x, node_t y) {
             
             // YANCOUTO: Aha, this is an extra add to the PQ.
             /************************ update PQ when tag changed********************/
-            if (V[z].inQ) {PQ.push(DATA(z, V[z].tag));}
+            //if (V[z].inQ) {PQ.push(DATA(z, V[z].tag));}
         }
 
         //reset w after relabel
@@ -287,7 +289,7 @@ int SeqCM::CoreMaint::OrderInsert(node_t x, node_t y) {
     V[y].tag = (V[x].tag + w / 2); cnt_tag++;
 
     /************************ update PQ when tag changed********************/
-    if (V[y].inQ) {PQ.push(DATA(y, V[y].tag));} 
+    //if (V[y].inQ) {PQ.push(DATA(y, V[y].tag));} 
 
     ListInsert(x, y);
     return 0;
@@ -331,7 +333,7 @@ int SeqCM::CoreMaint::OrderInsert(node_t x, node_t y) {
             V[z].tag = tagbase * k  + tag0; cnt_tag++;
             V[z].subtag = 0;
             /************************ update PQ when tag changed********************/
-            if (V[z].inQ) {PQ.push(DATA(z, V[z].tag, V[z].subtag));}
+            //if (V[z].inQ) {PQ.push(DATA(z, V[z].tag, V[z].subtag));}
         }
 
         //reset w after relabel
@@ -346,7 +348,7 @@ int SeqCM::CoreMaint::OrderInsert(node_t x, node_t y) {
     V[y].subtag = 0;
 END:
     /************************ update PQ when tag changed********************/
-    if (V[y].inQ) {PQ.push(DATA(y, V[y].tag, V[y].subtag));} 
+    //if (V[y].inQ) {PQ.push(DATA(y, V[y].tag, V[y].subtag));} 
 
     ListInsert(x, y);
     return 0;
@@ -383,7 +385,7 @@ int SeqCM::CoreMaint::MultiOrderInsert(node_t x, vector<node_t> &y) {
         for (size_t k = 1, z = V[x].next; k < j; k++, z=V[z].next) {
             V[z].tag = tagbase * k + tag0; cnt_tag++;
             // push into PQ again when tage changed. 
-            if (V[z].inQ) {PQ.push(DATA(z, V[z].tag));}
+            //if (V[z].inQ) {PQ.push(DATA(z, V[z].tag));}
         }
         // reset label 
         z = V[x].next;
@@ -398,7 +400,7 @@ int SeqCM::CoreMaint::MultiOrderInsert(node_t x, vector<node_t> &y) {
     for (size_t i = 0; i < size; i++) {
         V[y[i]].tag = (V[x].tag + w * (i+1)); cnt_tag++;
         // push into PQ again when tag is changed. 
-        if (V[y[i]].inQ) {PQ.push(DATA(y[i], V[y[i]].tag));}
+        //if (V[y[i]].inQ) {PQ.push(DATA(y[i], V[y[i]].tag));}
     }
     
     MultiListInsert(x, y);
@@ -431,7 +433,7 @@ int SeqCM::CoreMaint::MultiOrderInsert(node_t x, vector<node_t> &y) {
             }
 
             for (size_t i = 0; i < size; i++) {
-                if (V[y[i]].inQ) {PQ.push(DATA(y[i], V[y[i]].tag, V[y[i]].subtag));}
+                //if (V[y[i]].inQ) {PQ.push(DATA(y[i], V[y[i]].tag, V[y[i]].subtag));}
             }
             
             MultiListInsert(x, y);
@@ -456,7 +458,7 @@ int SeqCM::CoreMaint::MultiOrderInsert(node_t x, vector<node_t> &y) {
             V[z].tag = tagbase * k + tag0; cnt_tag++;
             V[z].subtag = 0;
             // push into PQ again when tage changed. 
-            if (V[z].inQ) {PQ.push(DATA(z, V[z].tag, V[z].subtag));}
+            //if (V[z].inQ) {PQ.push(DATA(z, V[z].tag, V[z].subtag));}
         }
         // reset label 
         z = V[x].next;
@@ -472,7 +474,7 @@ int SeqCM::CoreMaint::MultiOrderInsert(node_t x, vector<node_t> &y) {
         V[y[i]].tag = (V[x].tag + w * (i+1)); cnt_tag++;
         V[y[i]].subtag = 0;
         // push into PQ again when tag is changed. 
-        if (V[y[i]].inQ) {PQ.push(DATA(y[i], V[y[i]].tag, V[y[i]].subtag));}
+        //if (V[y[i]].inQ) {PQ.push(DATA(y[i], V[y[i]].tag, V[y[i]].subtag));}
     }
     
     MultiListInsert(x, y);
@@ -1117,5 +1119,7 @@ int SeqCM::CoreMaint::Check(node_t x, node_t y, int id, vector<core_t> &tmp_core
     }
 
     return error;
+
+}
 
 }
