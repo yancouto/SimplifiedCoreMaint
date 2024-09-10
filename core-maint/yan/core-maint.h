@@ -5,6 +5,7 @@
 #include <math.h>       /* pow */
 #include <climits>
 #include <map>
+#include <unordered_set>
 using namespace std;
 
 extern int cnt_PQ;
@@ -286,6 +287,18 @@ private:
 #endif 
 
 namespace SeqCM{
+    
+    class PartitionedAdjacencyList {
+        public:
+        // TODO: Check if set is faster in practice.
+        unordered_set<node_t> k_less;
+        unordered_set<node_t> k_more;
+        unordered_set<node_t> k_equal_korder_less;
+        unordered_set<node_t> k_equal_korder_more;
+        // This is exactly the nodes that count in degin
+        vector<node_t> tmp_Vp_korder_less;
+        
+    };
 
     /*first version, with one level tags (label), only tag is used.
     * take O(logn) time for insert*/
@@ -295,6 +308,7 @@ namespace SeqCM{
         core_t max_core; // the max core number
         graph_t& graph;
         vector<core_t>& core;
+        vector<PartitionedAdjacencyList> adj;
         vector<Node> V; // node information include head and tail
         // head-> x -> y -> tail (easy for insert and remove)
         
@@ -315,6 +329,8 @@ namespace SeqCM{
         int OrderInsert(node_t x, node_t y); // insert y after x
         int MultiOrderInsert(node_t x, vector<node_t> &y);
         inline int OrderDelete(node_t x);   // remove x
+        void verify_adj(node_t u);
+
 
         QUEUE R; 
       
