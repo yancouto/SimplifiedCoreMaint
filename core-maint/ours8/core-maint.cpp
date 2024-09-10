@@ -271,6 +271,7 @@ int SeqCM::CoreMaint::OrderInsert(node_t x, node_t y) {
             // and each time one part for a tag
             V[z].tag = tagbase * k  + tag0; cnt_tag++;
             
+            // YANCOUTO: Aha, this is an extra add to the PQ.
             /************************ update PQ when tag changed********************/
             if (V[z].inQ) {PQ.push(DATA(z, V[z].tag));}
         }

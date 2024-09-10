@@ -3,3 +3,7 @@
 *.a
 *.exe
 
+# Big graphs
+experiment/graph/facebook_combined.txt*
+experiment/graph/soc-pokec-relationships.txt
+experiment/graph/random-1m.txt

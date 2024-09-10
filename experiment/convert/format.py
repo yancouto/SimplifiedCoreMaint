@@ -1,7 +1,8 @@
 #format the graph as the input graph for the experiments.
+import os
 
-filepath = "../graph/facebook-snap.txt"
-filepath2 = "../graph/facebook.txt"
+filepath = os.path.expanduser("~/Downloads/soc-pokec-relationships.txt")
+filepath2 = "experiment/graph/" + os.path.basename(filepath)
 haszero = True
 
 edgeset = set()
@@ -10,7 +11,7 @@ with open(filepath) as fp:
     cnt = 0
     for line in fp:
         #print("line {} contents {}".format(cnt, line))
-        a = line.split(' ')
+        a = line.split()
         v0 = int(a[0])
         v1 = int(a[1])
         
@@ -24,7 +25,7 @@ with open(filepath) as fp:
         edgeset.add((v0, v1))
         cnt+=1
         #if cnt > 1000: break
-        if cnt % 100000 is 0: print(cnt)
+        if cnt % 100000 == 0: print(cnt)
 
 n += 1
 m = len(edgeset)

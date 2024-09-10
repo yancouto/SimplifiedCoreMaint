@@ -42,6 +42,7 @@ typedef unsigned int subtag_t; // 32bit label subtag;
 const size_t MAX_TAG = 0xffffffffffffffff;
 const size_t INIT_TAG_GAP = 0xffffffff; // 32 bit unsigned integer
 const size_t MAX_SUBTAG = 0xffffffff; // 32 bit unsigned integer
+extern int cnt_PQ;
 /*#define WITH_SUBTAG */ // this is defined in makefile
 
 #else // !!!my machine doesn't support this __int128 well. 
@@ -98,7 +99,7 @@ public:
         pq_ = PQ(compare, std::move(container));
     } 
     PRIORITY_Q(){}
-    inline void push(DATA d) { pq_.push(d);}
+    inline void push(DATA d) { pq_.push(d); cnt_PQ++;}
     inline DATA top() {return pq_.top();}
     inline void pop() {pq_.pop();}
     inline bool empty() {return pq_.empty(); }

@@ -18,6 +18,7 @@ int cnt_edge = 0;
 int cnt_edge2 = 0;
 int cnt_Vs = 0; // count of size V*
 int cnt_Vp = 0; // count of size V+
+int cnt_PQ = 0;
 int cnt_S = 0;  // count of all visited
 int cnt_tag = 0;
 int cnt_gap_adjust = 0;
@@ -144,6 +145,9 @@ int main(int argc, char** argv) {
     printf("---- with V Black2Gray in Backward for Insertion\n");
 #endif
   gadget::RepeatWith('*', 80);
+#ifdef DEBUG
+  printf("*** DEBUG MODE IS ON!!!!!!! ***\n");
+#endif
     
 
     // graph: create the adjacent list representation
@@ -260,6 +264,7 @@ int main(int argc, char** argv) {
             for (int i = m2; i < m; ++i) {
                 ourcm->EdgeInsert(edges[i].first, edges[i].second);
 #ifdef DEBUG
+                printf("Duck me\n");
                 // check each time. 
                 ourcm->ComputeCore(graph, tmp_core, order_v, false);
                 int r = ourcm->Check(edges[i].first, edges[i].second, i - m2, tmp_core, order_v);  
@@ -279,6 +284,7 @@ int main(int argc, char** argv) {
     
     printf("V* size: %d\n", cnt_Vs);
     printf("V+ size: %d\n", cnt_Vp);
+    printf("PQ pushes: %d\n", cnt_PQ);
     printf("S size: %d\n", cnt_S);
     printf("our adjust tag: %d\n", cnt_tag);
   /*see count end*/
@@ -344,6 +350,7 @@ REMOVE:
     
     printf("V* size: %d\n", cnt_Vs);
     printf("V+ size: %d\n", cnt_Vp);
+    printf("PQ pushes: %d\n", cnt_PQ);
     printf("S size: %d\n", cnt_S);
     printf("our adjust tag: %d\n", cnt_tag);
   /*see count end*/
