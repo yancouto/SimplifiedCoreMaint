@@ -26,6 +26,7 @@ SeqCM::CoreMaint::CoreMaint(size_t n, graph_t &graph, vector<core_t> &core):
     Vblack2gray.reserve(n);
 #endif
     Vcolor.reserve(reserve_size);
+    adj.resize(n);
     
     R = QUEUE(reserve_size); //2^14
     PQ2 = PRIORITY_Q2(reserve_size); 
@@ -104,6 +105,21 @@ void SeqCM::CoreMaint::Init(vector<int> &odv) {
     }
 #endif 
 
+    for(int u = 0; u < n; u++) {
+        for(int v : graph[u]) {
+            if (core[u] < core[v]) {
+                adj[u].k_more.insert(v);
+            } else if(core[u] > core[v]) {
+                adj[u].k_less.insert(v);
+            } else if(SameCoreOrder(u, v)) {
+                adj[u].k_equal_korder_more.insert(v);
+            } else {
+                adj[u].k_equal_korder_less.insert(v);
+            }
+        }
+        // TODO: REMOVE
+        verify_adj(u);
+    }
 }
 
 void SeqCM::CoreMaint::ComputeCore(std::vector<std::vector<int>>& graph, 
@@ -173,20 +189,6 @@ void SeqCM::CoreMaint::ComputeCore(std::vector<std::vector<int>>& graph,
     }
     /*init degout, here is more efficient that check the order of u and v*/
     if(with_init) {V[v].degout = rem;}
-  }
-  for(int u = 0; u < n_; u++) {
-    for(int v : graph[u]) {
-      if (core[u] < core[v]) {
-        adj[u].k_more.insert(v);
-      } else if(core[u] > core[v]) {
-        adj[u].k_less.insert(v);
-      } else if(SameCoreOrder(u, v)) {
-        adj[u].k_equal_korder_more.insert(v);
-      } else {
-        adj[u].k_equal_korder_less.insert(v);
-      }
-    }
-    verify_adj(u);
   }
 }
 
@@ -516,7 +518,16 @@ int SeqCM::CoreMaint::EdgeInsert(node_t u, edge_t v) {
     /*add edges*/
     graph[u].push_back(v); 
     graph[v].push_back(u);
+    if(core[u] < core[v]) {
+        adj[u].k_more.insert(v);
+        adj[v].k_less.insert(u);
+    } else {
+        adj[u].k_equal_korder_more.insert(v);
+        adj[v].k_equal_korder_less.insert(u);
+    }
     V[u].degout++;
+    verify_adj(u);
+    verify_adj(v);
     if (V[u].degout <= K ) {
         if (core[u] <= core[v]) V[u].mcd++;
         if (core[v] <= core[u]) V[v].mcd++;
@@ -546,6 +557,9 @@ int SeqCM::CoreMaint::EdgeInsert(node_t u, edge_t v) {
             Forward(w);
         } else if (V[w].degin > 0){ // backward (w must has degin > 0, or w can't be in PQ)
             Backward(w);
+        } else {
+            // Added to PQ but then removed by Backward
+            adj[w].tmp_Vp_korder_less.clear();
         }
 
     }
@@ -558,11 +572,58 @@ int SeqCM::CoreMaint::EdgeInsert(node_t u, edge_t v) {
             OrderDelete(w);// remove w from the order list O_k
             core[w]++;
             Vblack.push_back(w);
+            for(auto k_eq : {&adj[w].k_equal_korder_less, &adj[w].k_equal_korder_more}) {
+                for(auto it = k_eq->begin(); it != k_eq->end(); ) {
+                    const node_t x = *it;
+                    if (V[x].color == BLACK)
+                        ++it;
+                    else {
+                        it = k_eq->erase(it);
+                        int erased = adj[x].k_equal_korder_more.erase(w) + adj[x].k_equal_korder_less.erase(w);
+                        adj[w].k_less.insert(x);
+                        adj[x].k_more.insert(w);
+                        ASSERT(erased == 1);
+                    }
+                }
+            }
+            for(auto it = adj[w].k_more.begin(); it != adj[w].k_more.end(); ) {
+                const node_t x = *it;
+                if (core[x] == core[w]) {
+                    int erased = adj[x].k_less.erase(w);
+                    adj[w].k_equal_korder_more.insert(x);
+                    adj[x].k_equal_korder_less.insert(w);
+                    it = adj[w].k_more.erase(it);
+                    ASSERT(erased == 1);
+                } else
+                    ++it;
+            }
+            adj[w].tmp_Vp_korder_less.clear();
+        } else { // in V+ not in V*
+            for (auto it = adj[w].k_equal_korder_less.begin(); it != adj[w].k_equal_korder_less.end(); ) {
+                node_t x = *it;
+                if (V[x].color != BLACK && SameCoreOrder(w, x)) {
+                    it = adj[w].k_equal_korder_less.erase(it);
+                    adj[w].k_equal_korder_more.insert(x);
+                } else {
+                    ++it;
+                }
+            }
+            for (auto it = adj[w].k_equal_korder_more.begin(); it != adj[w].k_equal_korder_more.end(); ) {
+                node_t x = *it;
+                if (V[x].color != BLACK && SameCoreOrder(x, w)) {
+                    it = adj[w].k_equal_korder_more.erase(it);
+                    adj[w].k_equal_korder_less.insert(x);
+                } else {
+                    ++it;
+                }
+            }
+            adj[w].tmp_Vp_korder_less.clear();
         }
     }
 
     // insert Vb2 (ordered black nodes) to the head of O_k+1
     MultiOrderInsert(H[K+1], Vblack);
+    
     
     /*update the mcd*/
     if (Vblack.empty()) {
@@ -582,8 +643,17 @@ int SeqCM::CoreMaint::EdgeInsert(node_t u, edge_t v) {
         }
     }
 
+    // TODO: Remove
+    for(const node_t w: Vcolor)
+        verify_adj(w);
+
     //reset all color
-    for(const node_t u: Vcolor) {V[u].color = WHITE; V[u].degin = 0;}
+    for(const node_t u: Vcolor) {
+        V[u].color = WHITE;
+        V[u].degin = 0;
+        assert(adj[u].tmp_Vp_korder_less.empty());
+    }
+
 
     return 0;
 }
@@ -595,7 +665,7 @@ void SeqCM::CoreMaint::Forward(node_t w){
         cnt_S++;
         assert(SameCoreOrder(w, w2));
         V[w2].degin++;  // w is black
-        adj[w2].tmp_Vp_korder_less.push_back(w);
+        adj[w2].tmp_Vp_korder_less.insert(w);
         if (!V[w2].inQ) { // w2 is not in PQ
         #ifdef WITH_SUBTAG
             PQ.push(DATA(w2, V[w2].tag, V[w2].subtag)); V[w2].inQ = true; 
@@ -653,8 +723,8 @@ void SeqCM::CoreMaint::Backward(node_t w) { //???
 }
 
 void SeqCM::CoreMaint::DoPre(node_t u) {
-    for (const edge_t v: adj[u].tmp_Vp_korder_less) { 
-        ASSERT(SameCoreOrder(v, u) && V[v].color != WHITE);
+    for (const edge_t v: adj[u].k_equal_korder_less) { 
+        ASSERT(SameCoreOrder(v, u));
         if(WITH_E2) {
             auto it = E2.find(make_pair(v, u));
             if (it == E2.end()) continue;
@@ -673,92 +743,90 @@ void SeqCM::CoreMaint::DoPre(node_t u) {
         }
 
         V[v].degout--;
-        //ASSERT(V[v].degout >= 0);
+        ASSERT(V[v].degout >= 0);
 
         if (BLACK == V[v].color  && V[v].degin + V[v].degout <= core[v]) {
-            int e1 = adj[u].k_equal_korder_less.erase(v);
-            adj[u].k_equal_korder_more.insert(v);
-            int e2 = adj[v].k_equal_korder_more.erase(u);
-            adj[v].k_equal_korder_less.insert(u);
-            ASSERT(e1 == 1 && e2 == 1);
             R.push(v); V[v].inR = true;
         }
     }   
-    adj[u].tmp_Vp_korder_less.clear();
 }
 
 
 void SeqCM::CoreMaint::verify_adj(node_t u) {
+    return;
     auto &a = adj[u];
     ASSERT(a.k_less.size() + a.k_more.size() + a.k_equal_korder_less.size() + a.k_equal_korder_more.size() == graph[u].size());
     ASSERT(a.tmp_Vp_korder_less.empty());
+    int degout = V[u].degout;
     for(int v: graph[u]) {
         if(core[u] < core[v]) {
+            degout--;
             ASSERT(a.k_more.count(v) == 1);
         } else if(core[u] > core[v]) {
-            ASSERT(a.k_less.count(v) == 1);
+            assert(a.k_less.count(v) == 1);
         } else if(SameCoreOrder(u, v)) {
+            degout--;
             ASSERT(a.k_equal_korder_more.count(v) == 1);
         } else {
+            assert(SameCoreOrder(v, u));
             ASSERT(a.k_equal_korder_less.count(v) == 1);
         }
     }
+    assert(degout == 0);
 }
 
 
 void SeqCM::CoreMaint::DoAdj(node_t u) {
-    for (const edge_t v: graph[u]) { 
-        if (SameCoreOrder(v, u) ) { //u<-v  pre
-            
-            if(WITH_E2) {
-                auto it = E2.find(make_pair(v, u));
-                if (it == E2.end()) continue;
-                else E2.erase(it);
-            } else { // not with E2
-                // bool a = false, b = false;
-                // auto it = E2.find(make_pair(v, u));
-                // if (it == E2.end()) {a = true;}
-                // else E2.erase(it);
+    for (const edge_t v: adj[u].k_equal_korder_less) {
+        if(WITH_E2) {
+            auto it = E2.find(make_pair(v, u));
+            if (it == E2.end()) continue;
+            else E2.erase(it);
+        } else { // not with E2
+            // bool a = false, b = false;
+            // auto it = E2.find(make_pair(v, u));
+            // if (it == E2.end()) {a = true;}
+            // else E2.erase(it);
 
-                // if (BLACK != V[v].color) {b= true;};
-                // assert(a == b);
-                // if (a || b) continue;
-                if (BLACK != V[v].color) {continue;};
-            }
+            // if (BLACK != V[v].color) {b= true;};
+            // assert(a == b);
+            // if (a || b) continue;
+            if (BLACK != V[v].color) {continue;};
+        }
+        ASSERT(SameCoreOrder(v, u));
 
+        V[v].degout--; 
+        ASSERT(V[v].degout >= 0);
+        
+        if (!V[v].inR && BLACK == V[v].color && V[v].degin + V[v].degout <= core[v]) {
+            /*V[v].color = GRAY; // black -> gray*/
+            R.push(v); V[v].inR = true;
+        }
+    }
+    for (const edge_t v: adj[u].k_equal_korder_more) { 
+        if(WITH_E2) {
+            auto it = E2.find(make_pair(u, v));
+            if (it == E2.end()) continue;
+            else E2.erase(it);
+        } else { // not with E2
+            // bool a = false, b = false;
+            // auto it = E2.find(make_pair(u, v));
+            // if (it == E2.end()) {a = true;}
+            // else E2.erase(it);
 
-            V[v].degout--; 
-            //ASSERT(V[v].degout >= 0);
-            
-            if (!V[v].inR && BLACK == V[v].color && V[v].degin + V[v].degout <= core[v]) {
-                /*V[v].color = GRAY; // black -> gray*/
-                R.push(v); V[v].inR = true;
-            }
+            // if (WHITE == V[v].color) {b= true;};
+            // assert(a == b);
+            // if (a || b) continue;
+            if (WHITE == V[v].color) {continue;};
+        }
+        ASSERT(V[v].inR || SameCoreOrder(u, v));
 
-        } else if (SameCoreOrder(u, v)) { // u->v post
-            if(WITH_E2) {
-                auto it = E2.find(make_pair(u, v));
-                if (it == E2.end()) continue;
-                else E2.erase(it);
-            } else { // not with E2
-                // bool a = false, b = false;
-                // auto it = E2.find(make_pair(u, v));
-                // if (it == E2.end()) {a = true;}
-                // else E2.erase(it);
+        V[v].degin--;
+        ASSERT(V[v].degin >= 0);
 
-                // if (WHITE == V[v].color) {b= true;};
-                // assert(a == b);
-                // if (a || b) continue;
-                if (WHITE == V[v].color) {continue;};
-            }
-
-            V[v].degin--;
-            //ASSERT(V[v].degin >= 0);
-
-            if (!V[v].inR && BLACK == V[v].color && V[v].degin + V[v].degout <= core[v]) {
-                //V[v].color = GRAY; 
-                R.push(v); V[v].inR = true;
-            }
+        if (!V[v].inR && BLACK == V[v].color && V[v].degin + V[v].degout <= core[v]) {
+            //V[v].color = GRAY; 
+            R.push(v); V[v].inR = true;
         }
     }
     

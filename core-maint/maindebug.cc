@@ -275,7 +275,6 @@ int main(int argc, char** argv) {
             for (int i = m2; i < m; ++i) {
                 ourcm->EdgeInsert(edges[i].first, edges[i].second);
 #ifdef DEBUG
-                printf("Duck me\n");
                 // check each time. 
                 ourcm->ComputeCore(graph, tmp_core, order_v, false);
                 int r = ourcm->Check(edges[i].first, edges[i].second, i - m2, tmp_core, order_v);  

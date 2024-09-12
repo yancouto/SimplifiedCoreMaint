@@ -296,7 +296,7 @@ namespace SeqCM{
         unordered_set<node_t> k_equal_korder_less;
         unordered_set<node_t> k_equal_korder_more;
         // This is exactly the nodes that count in degin
-        vector<node_t> tmp_Vp_korder_less;
+        unordered_set<node_t> tmp_Vp_korder_less;
         
     };
 
