@@ -4,6 +4,19 @@
         "compare": "cpp",
         "cstdint": "cpp",
         "vector": "cpp",
-        "xtree": "cpp"
+        "xtree": "cpp",
+        "algorithm": "cpp",
+        "deque": "cpp",
+        "initializer_list": "cpp",
+        "list": "cpp",
+        "map": "cpp",
+        "memory": "cpp",
+        "set": "cpp",
+        "streambuf": "cpp",
+        "unordered_map": "cpp",
+        "unordered_set": "cpp",
+        "xhash": "cpp",
+        "xstring": "cpp",
+        "xutility": "cpp"
     }
 }

@@ -290,13 +290,14 @@ namespace SeqCM{
     
     class PartitionedAdjacencyList {
         public:
-        // TODO: Check if set is faster in practice.
-        unordered_set<node_t> k_less;
-        unordered_set<node_t> k_more;
-        unordered_set<node_t> k_equal_korder_less;
-        unordered_set<node_t> k_equal_korder_more;
+        // Erasing is implicit
+        // TODO: Maybe we're keeping duplicates
+        vector<node_t> k_less;
+        vector<node_t> k_more;
+        vector<node_t> k_equal_korder_less;
+        vector<node_t> k_equal_korder_more;
         // This is exactly the nodes that count in degin
-        unordered_set<node_t> tmp_Vp_korder_less;
+        vector<node_t> tmp_Vp_korder_less;
         
     };
 
