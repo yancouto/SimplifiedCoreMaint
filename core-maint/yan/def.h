@@ -21,6 +21,8 @@ using namespace std;
 #define atomic_sub(a, b)        __sync_fectch_and_sub(a, b);
 #define likely(x) (x)
 #define unlikely(x) (x)
+#define deb(...) printf(__VA_ARGS__)
+#define deb(...) 0
 //#define likely(x) __builtin_expect(!!(x), 1)
 //#define unlikely(x) __builtin_expect(!!(x), 0)
 

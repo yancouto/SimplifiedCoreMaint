@@ -16,8 +16,8 @@ LFLAGS=-L$(LIBDIR) -l$(LIB)
 
 #CFLAGS=-c -I. -std=c++0x -Wfatal-errors
 #CFLAGS=-c -I. -I$(INCDIR) -std=c++0x -Wfatal-errors
-CFLAGS=-c -I. -I$(INCDIR) -fopenmp  -std=gnu++0x -fpermissive -fdiagnostics-color=always
-CFLAGS2=-I. -I$(INCDIR) -fopenmp  -std=gnu++0x -fpermissive
+CFLAGS=-c -I. -I$(INCDIR) -fopenmp  -std=c++17 -fpermissive -fdiagnostics-color=always
+CFLAGS2=-I. -I$(INCDIR) -fopenmp  -std=c++17 -fpermissive
 INCFILES = $(shell ls $(INCDIR))
 H_FILES = $(addprefix $(INCDIR)/, $(INCFILES))
 
@@ -71,7 +71,7 @@ glist.o: glist/glist.cc
 ours.o: ours8/core-maint.cpp
 	$(CC) $(CFLAGS) ours8/core-maint.cpp -o ours.o
 
-yan.o: yan/core-maint.cpp
+yan.o: yan/core-maint.cpp yan/*.h
 	$(CC) $(CFLAGS) yan/core-maint.cpp -o yan.o
 
 clean: 

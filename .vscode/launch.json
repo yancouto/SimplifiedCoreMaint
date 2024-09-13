@@ -5,7 +5,7 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}\\core-maint\\debug.exe",
-            "args": ["-p", "experiment/graph/facebook_combined.txt", "-I", "76", "-m", "4"],
+            "args": ["-p", "experiment/graph/facebook_combined.txt", "-I", "121", "-m", "4"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],

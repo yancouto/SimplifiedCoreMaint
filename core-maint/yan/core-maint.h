@@ -1,11 +1,9 @@
 #pragma once
 #include <vector>
-#include <set>
 #include <queue>
 #include <math.h>       /* pow */
 #include <climits>
 #include <map>
-#include <unordered_set>
 using namespace std;
 
 extern int cnt_PQ;
@@ -61,7 +59,7 @@ const size_t INIT_TAG_GAP = 0xffffffffffffffff;
 namespace SeqCM {
     enum{
         WHITE   = 0, /*initial*/
-        DARK, /*visited in PQ wating to be propagated*/
+        DARK = 3, /*visited in PQ wating to be propagated*/
         GRAY    = 1, /*visited, not in V* but in V+*/
         BLACK   = 2, /*visited, in V* and in V+*/
     };
@@ -185,17 +183,20 @@ public:
 
 namespace SeqCM{
     
+    class Edge {
+        public:
+        node_t v;
+        size_t edge_idx_in_v;
+    };
+    
     class PartitionedAdjacencyList {
         public:
-        // Erasing is implicit
-        // TODO: Maybe we're keeping duplicates
-        vector<node_t> k_less;
-        vector<node_t> k_more;
-        vector<node_t> k_equal_korder_less;
-        vector<node_t> k_equal_korder_more;
+        vector<Edge> k_less;
+        vector<Edge> k_more;
+        vector<Edge> k_equal_korder_less;
+        vector<Edge> k_equal_korder_more;
         // This is exactly the nodes that count in degin
         vector<node_t> tmp_Vp_korder_less;
-        
     };
 
     /*first version, with one level tags (label), only tag is used.
@@ -227,7 +228,10 @@ namespace SeqCM{
         int OrderInsert(node_t x, node_t y); // insert y after x
         int MultiOrderInsert(node_t x, vector<node_t> &y);
         inline int OrderDelete(node_t x);   // remove x
-        void verify_adj(node_t u);
+        void verify_adj(node_t u, bool deep=false);
+        void add_left_right_edge(node_t u, node_t v);
+        void erase_edge(node_t u, vector<Edge> &edges, int idx);
+        void inner_erase_edge(node_t u, vector<Edge> &edges, int idx);
 
 
         QUEUE R; 
