@@ -196,7 +196,9 @@ namespace SeqCM{
         vector<Edge> k_equal_korder_less;
         vector<Edge> k_equal_korder_more;
         // This is exactly the nodes that count in degin
-        vector<node_t> tmp_Vp_korder_less;
+        // it's the index to the k_equal_korder_less array
+        vector<int> k_equal_korder_less_to_tmp;
+        vector<int> tmp_Vp_korder_less;
     };
 
     /*first version, with one level tags (label), only tag is used.
@@ -228,7 +230,7 @@ namespace SeqCM{
         int OrderInsert(node_t x, node_t y); // insert y after x
         int MultiOrderInsert(node_t x, vector<node_t> &y);
         inline int OrderDelete(node_t x);   // remove x
-        void verify_adj(node_t u, bool deep=false);
+        inline void verify_adj(node_t u, bool deep=false) {}
         void add_left_right_edge(node_t u, node_t v);
         void erase_edge(node_t u, vector<Edge> &edges, int idx);
         void inner_erase_edge(node_t u, vector<Edge> &edges, int idx);

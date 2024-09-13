@@ -3,6 +3,7 @@ core IorR costs(ms): 3751.719700 (OLD not O3)
 core IorR costs(ms): 1975.934200 (my laptop)
 core IorR costs(ms): 1754.063500 (my desktop, ours)
 core IorR costs(ms): 2495.384600 (my desktop, yan)
+core IorR costs(ms): 2617.479800 (my desktop, yan with more optimization D:)
 
 ./core-maint/core.exe -p experiment/graph/soc-pokec-relationships.txt -m 2 -I 1000000
 core IorR costs(ms): 6554.857800 (OLD not O3)

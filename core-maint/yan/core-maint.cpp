@@ -112,6 +112,7 @@ void SeqCM::CoreMaint::Init(vector<int> &odv) {
                     // assert(SameCoreOrder(u, v))
                     adj[u].k_equal_korder_more.push_back(Edge{v, adj[v].k_equal_korder_less.size()});
                     adj[v].k_equal_korder_less.push_back(Edge{u, adj[u].k_equal_korder_more.size() - 1});
+                    adj[v].k_equal_korder_less_to_tmp.push_back(-1);
                 }
             }
         }
@@ -129,6 +130,7 @@ void SeqCM::CoreMaint::add_left_right_edge(node_t u, node_t v) {
         // assert(SameCoreOrder(u, v))
         adj[u].k_equal_korder_more.push_back(Edge{v, adj[v].k_equal_korder_less.size()});
         adj[v].k_equal_korder_less.push_back(Edge{u, adj[u].k_equal_korder_more.size() - 1});
+        adj[v].k_equal_korder_less_to_tmp.push_back(-1);
     }
     verify_adj(u); verify_adj(v);
 }
@@ -553,6 +555,8 @@ int SeqCM::CoreMaint::EdgeInsert(node_t u, edge_t v) {
             Backward(w);
         } else {
             // Added to PQ but then removed by Backward
+            for(int idx : adj[w].tmp_Vp_korder_less)
+                adj[w].k_equal_korder_less_to_tmp[idx] = -1;
             adj[w].tmp_Vp_korder_less.clear();
             V[w].color = WHITE;
         }
@@ -586,10 +590,10 @@ int SeqCM::CoreMaint::EdgeInsert(node_t u, edge_t v) {
                 } else
                     ++i;
             }
-            adj[w].tmp_Vp_korder_less.clear();
-        } else { // in V+ not in V*
-            adj[w].tmp_Vp_korder_less.clear();
-        }
+        } else { /* in V+ not in V* */ }
+        for(int idx : adj[w].tmp_Vp_korder_less)
+            adj[w].k_equal_korder_less_to_tmp[idx] = -1;
+        adj[w].tmp_Vp_korder_less.clear();
     }
 
     // insert Vb2 (ordered black nodes) to the head of O_k+1
@@ -632,11 +636,13 @@ int SeqCM::CoreMaint::EdgeInsert(node_t u, edge_t v) {
 void SeqCM::CoreMaint::Forward(node_t w){
     V[w].color = BLACK; cnt_Vs++; cnt_Vp++;// core number can be update 
     Vcolor.push_back(w); // all colored nodes
-    for (auto& [w2, _]: adj[w].k_equal_korder_more) { // w -> w2
+    for (auto& [w2, idx]: adj[w].k_equal_korder_more) { // w -> w2
         cnt_S++;
         ASSERT(SameCoreOrder(w, w2));
         V[w2].degin++;  // w is black
-        adj[w2].tmp_Vp_korder_less.push_back(w);
+        verify_adj(w); verify_adj(w2);
+        adj[w2].tmp_Vp_korder_less.push_back(idx);
+        adj[w2].k_equal_korder_less_to_tmp[idx] = adj[w2].tmp_Vp_korder_less.size() - 1;
         deb("Forward: Adding edge (%d, %d)\n", w, w2);
         if (!V[w2].inQ) { // w2 is not in PQ
             PQ.push(w2); V[w2].inQ = true; 
@@ -691,11 +697,18 @@ void SeqCM::CoreMaint::inner_erase_edge(node_t u, vector<SeqCM::Edge> &es, int i
         Edge &back = es.back();
         if (&es == &a.k_less) adj[back.v].k_more[back.edge_idx_in_v].edge_idx_in_v = idx;
         else if (&es == &a.k_more) adj[back.v].k_less[back.edge_idx_in_v].edge_idx_in_v = idx;
-        else if (&es == &a.k_equal_korder_less) adj[back.v].k_equal_korder_more[back.edge_idx_in_v].edge_idx_in_v = idx;
-        else if (&es == &a.k_equal_korder_more) adj[back.v].k_equal_korder_less[back.edge_idx_in_v].edge_idx_in_v = idx;
+        else if (&es == &a.k_equal_korder_less) {
+            adj[back.v].k_equal_korder_more[back.edge_idx_in_v].edge_idx_in_v = idx;
+            int prev_idx = a.k_equal_korder_less_to_tmp.back();
+            if (prev_idx != -1) {
+                a.tmp_Vp_korder_less[prev_idx] = idx;
+                a.k_equal_korder_less_to_tmp[idx] = prev_idx;
+            }
+        } else if (&es == &a.k_equal_korder_more) adj[back.v].k_equal_korder_less[back.edge_idx_in_v].edge_idx_in_v = idx;
         else assert(false);
         es[idx] = es.back();
     }
+    if (&es == &a.k_equal_korder_less) a.k_equal_korder_less_to_tmp.pop_back();
     es.pop_back();
 }
 
@@ -711,16 +724,17 @@ void SeqCM::CoreMaint::erase_edge(node_t u, vector<Edge> &es, int idx) {
 }
 
 void SeqCM::CoreMaint::DoPre(node_t u) {
-    for (int i = 0; i < adj[u].k_equal_korder_less.size();) {
-        node_t v = adj[u].k_equal_korder_less[i].v;
-        if (WHITE == V[v].color) { ++i; continue; }
-        if (BLACK != V[v].color) { assert(false); continue;}
+    for (int idx : adj[u].tmp_Vp_korder_less) {
+        node_t v = adj[u].k_equal_korder_less[idx].v;
+        if (WHITE == V[v].color) {  continue; }
+        assert(V[v].color == BLACK);
+        verify_adj(u); verify_adj(v);
         V[v].degout--;
         ASSERT(V[v].degout >= 0);
         V[u].degin--; V[u].degout++;
         assert(V[u].degin >= 0);
         deb("DoPre: Removing edge (%d, %d) and moving forward\n", u, v);
-        erase_edge(u, adj[u].k_equal_korder_less, i);
+        erase_edge(u, adj[u].k_equal_korder_less, idx);
         add_left_right_edge(u, v);
 
 
@@ -732,12 +746,12 @@ void SeqCM::CoreMaint::DoPre(node_t u) {
 }
 
 
-void SeqCM::CoreMaint::verify_adj(node_t u, bool deep) {
-    return;
+/*void SeqCM::CoreMaint::verify_adj(node_t u, bool deep) {
     // TODO: REMOVE, this is inneficcient
     vector<node_t> new_adj;
     auto &a = adj[u];
     assert(V[u].degout == a.k_equal_korder_more.size() + a.k_more.size());
+    assert(adj[u].k_equal_korder_less_to_tmp.size() == a.k_equal_korder_less.size());
     for (int i = 0; i < a.k_less.size(); i++) {
         auto &[v, idx] = a.k_less[i];
         assert(!deep || core[v] < core[u]);
@@ -770,7 +784,7 @@ void SeqCM::CoreMaint::verify_adj(node_t u, bool deep) {
     ASSERT(!deep || a.tmp_Vp_korder_less.empty());
     for(int v: graph[u])
         ASSERT(std::binary_search(new_adj.begin(), new_adj.end(), v));
-}
+}*/
 
 
 void SeqCM::CoreMaint::DoAdj(node_t u) {
