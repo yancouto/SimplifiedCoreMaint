@@ -26,7 +26,6 @@ SeqCM::CoreMaint::CoreMaint(size_t n, graph_t &graph, vector<core_t> &core):
     adj.resize(n);
     
     R = QUEUE(reserve_size); //2^14
-    PQ2 = PRIORITY_Q2(reserve_size); 
 
     /* init the Order List by k-order odv */
     max_core = 0;
@@ -542,15 +541,11 @@ int SeqCM::CoreMaint::EdgeInsert(node_t u, edge_t v) {
     }
 
     PQ.clear(); Vblack.clear(); Vcolor.clear();
-#ifdef WITH_SUBTAG
-    PQ.push(DATA(u, V[u].tag, V[u].subtag)); V[u].inQ = true;//only support single level tag
-#else
-    PQ.push(DATA(u, V[u].tag)); V[u].inQ = true;//only support single level tag
-#endif
+    PQ.push(u); V[u].inQ = true;
 
     /******* traverse with topological order***********/
     while (!PQ.empty()) {
-        node_t w = PQ.top().key; PQ.pop();//w has the smallest order
+        node_t w = PQ.top(); PQ.pop();//w has the smallest order
         if (unlikely(false == V[w].inQ) ) { continue; } //not in PQ, this is update the value of PQ.
         else { V[w].inQ = false; }
         
@@ -671,11 +666,7 @@ void SeqCM::CoreMaint::Forward(node_t w){
         V[w2].degin++;  // w is black
         adj[w2].tmp_Vp_korder_less.push_back(w);
         if (!V[w2].inQ) { // w2 is not in PQ
-        #ifdef WITH_SUBTAG
-            PQ.push(DATA(w2, V[w2].tag, V[w2].subtag)); V[w2].inQ = true; 
-        #else
-            PQ.push(DATA(w2, V[w2].tag)); V[w2].inQ = true; 
-        #endif
+            PQ.push(w2); V[w2].inQ = true; 
         }
 
         V[w2].color = DARK;
@@ -814,12 +805,6 @@ void SeqCM::CoreMaint::DoAdj(node_t u) {
     }
     
 }
-
-/*batch insert edges from m  to m2 in, return the repeated times */
-int SeqCM::CoreMaint::BatchEdgeInsert(std::vector<pair<node_t, node_t>> edges, int m, int m2) {throw "Not implemented";}
-
-void SeqCM::CoreMaint::BatchForward(node_t w, PRIORITY_Q2 &PQ2) {throw "Not implemented";}
-
 
 
 int SeqCM::CoreMaint::EdgeRemove(node_t u, edge_t v) {

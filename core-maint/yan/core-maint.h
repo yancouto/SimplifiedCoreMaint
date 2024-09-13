@@ -58,20 +58,6 @@ const size_t INIT_TAG_GAP = 0xffffffffffffffff;
 
 #endif 
 
-/**priority queue for core maint begin*************/
-struct DATA {
-    node_t key;
-    tag_t value;
-#ifdef WITH_SUBTAG
-    subtag_t value2;
-    DATA(node_t key, tag_t value, subtag_t value2) :
-        key(key), value(value), value2(value2){ } 
-#else
-    DATA(node_t key, tag_t value) :
-        key(key), value(value){ } 
-#endif
-};
-
 namespace SeqCM {
     enum{
         WHITE   = 0, /*initial*/
@@ -147,68 +133,14 @@ private:
 
 public:
     PRIORITY_Q(size_t size, std::vector<SeqCM::Node> &V): pq_(CompareOrder{V}, std::move(reserved_vec<node_t>(size))), V(V) {}
-    inline void push(DATA d) { pq_.push(d.key); cnt_PQ++;}
-    inline DATA top() {return DATA(pq_.top(), V[pq_.top()].tag);}
+    inline void push(node_t d) { pq_.push(d); cnt_PQ++;}
+    inline node_t top() {return pq_.top();}
     inline void pop() {pq_.pop();}
     inline bool empty() {return pq_.empty(); }
     inline void clear() { while (!pq_.empty()){pq_.pop();} }
 };
 /**priority queue for core maint end *************/
 
-/**priority queue for batchcore maint begin*************/
-struct DATA2 {
-    node_t key;
-    core_t core;
-    tag_t tag;
-#ifdef WITH_SUBTAG
-    subtag_t value2;
-    DATA(node_t key, tag_t value, subtag_t value2) :
-        key(key), value(value), value2(value2){ } 
-#else
-    DATA2(node_t key, core_t core, tag_t tag) :
-        key(key), core(core), tag(tag){ } 
-#endif
-};
-
-struct CompareOrder2 { 
-    bool operator()(DATA2 const& a, DATA2 const& b) 
-    { 
-        // return "true" if "a" is ordered  
-        // before "b", for example:
-#ifdef WITH_SUBTAG
-        if (likely(a.value != b.value))
-            return a.value > b.value;
-        else 
-            return a.value2 > b.value2; 
-            
-#else
-        if (a.core == b.core) return a.tag > b.tag;
-        else return a.core > b.core;
-#endif
-    } 
-}; 
-
-
-class PRIORITY_Q2 {
-private:
-    typedef std::priority_queue<DATA2, std::vector<DATA2>, CompareOrder2> PQ2;
-    PQ2 pq_;
-
-public:
-    PRIORITY_Q2(size_t size) {
-        std::vector<DATA2> container;
-        container.reserve(size);
-        CompareOrder2 compare;
-        pq_ = PQ2(compare, std::move(container));
-    } 
-    PRIORITY_Q2(){}
-    inline void push(DATA2 d) { pq_.push(d);}
-    inline DATA2 top() {return pq_.top();}
-    inline void pop() {pq_.pop();}
-    inline bool empty() {return pq_.empty(); }
-    inline void clear() { while (!pq_.empty()){pq_.pop();} }
-};
-/**priority queue for core maint end *************/
 
 #if 1
 /**queue for core maint begin*********************/
@@ -249,42 +181,6 @@ public:
     inline void clear() { ptr = 0;}
 };
 #endif
-
-#if 0
-/*this stack is more efficient than the STL stack */
-class STACK {
-public:
-    STACK(int max_sz) {
-        stack = new int32_t[max_sz];
-        if (NULL == stack) printf("stack is null!\n");
-        stack_ptr = 0;
-        max_stack = 0;
-    }
-    STACK() {}
-    ~STACK() { if (stack != NULL) {delete[] stack; stack = NULL;}}
-
-
-    inline void push(node_t n) {
-        stack[stack_ptr] = n;
-        stack_ptr ++;
-         if (stack_ptr > max_stack) {
-             max_stack = stack_ptr;
-         }
-        //max_stack++;
-    }
-    inline int size()   {return stack_ptr;}
-    inline int32_t top() {return stack[stack_ptr - 1];}
-    inline void set_top(int32_t v) {stack[stack_ptr - 1] = v;}
-    inline void pop()   {stack_ptr--;}
-    inline bool empty() {return (stack_ptr == 0);}
-    int32_t* get_ptr()  {return stack;}
-    int32_t get_max_stack() {return max_stack;}
-private:
-    int32_t* stack = NULL;
-    int32_t stack_ptr;
-    int32_t max_stack;
-};
-#endif 
 
 
 namespace SeqCM{
@@ -336,24 +232,14 @@ namespace SeqCM{
 
         QUEUE R; 
       
-        //std::queue<node_t> R;
         PRIORITY_Q PQ;      // queue backward
         
-        PRIORITY_Q2 PQ2;    // for batch insertion.
-
         vector<node_t> Vblack;  // the order of black nodes (may include gray)
 #ifdef WITH_V_BLACK2GRAY
         vector<node_t> Vblack2gray; // for ordered black to gray nodes  
 #endif
         vector<node_t> Vcolor; // all colored vertices.
         
-        std::set<std::pair<node_t, node_t>> E2; //all visited vertices. this can be optimized !!!
-
-        /*batch insertion */
-        //PRIORITY_Q2 PQ2;
-        //std::vector<pair<node_t, node_t>> tempedges, tempedges2;
-        /*batch insertion end */
-
         public:
         /*the insert and remove algorithm*/
         CoreMaint(size_t n, graph_t &graph, vector<core_t> &core);
@@ -368,12 +254,6 @@ namespace SeqCM{
         inline void DoAdj(node_t u);
         int EdgeInsert(node_t x, edge_t y); // insert to double-linked list
         
-        inline void BatchForward(node_t w, PRIORITY_Q2 &PQ2);
-        inline void BatchBackward(node_t w);
-        inline void BatchDoPre(node_t u);
-        inline void BatchDoAdj(node_t u);
-        int BatchEdgeInsert(std::vector<pair<node_t, node_t>> edges, int m, int m2);
-
         inline void BeginRemove(node_t u, node_t v);
         inline void BeginRemoveContinue(node_t u, node_t v);
         inline void FindVs(const core_t K);
@@ -384,78 +264,7 @@ namespace SeqCM{
         int Check(node_t, node_t, int id, vector<core_t> &tmp_core, vector<node_t> &order_v); 
     };
 
-    //second version, with two level tags (label)
-    // class OrderList2:CoreMaint {
-
-    // };
-
 }
 
-
-
-
-/*this parallel version should put into another file*/
-#if 0 
-/****************************
- * parallel version of List Order Maintenance
- * by using openmp lock 
- * ***************************/
-namespace ParCM{
-    class Node {
-    public:
-        //Computer Core number
-        core_t k;
-        deg_t degout; // deg+
-        deg_t degin;  // deg*
-        deg_t mcd;    //for edge removing.
-        color_t color;
-
-        //Order Maintenance
-        node_t pre;  //double linked list
-        node_t next; //double linked list
-        
-        tag_t tag;   // label tag for each item range is 0 - n^2
-        subtag_t subtag; //for sublinked list.
-
-        worker_t p;
-
-        inline void Lock() {omp_set_lock(&lock);}
-        inline void Unlock() {omp_unset_lock(&lock);}
-        inline bool TestLock() {return omp_test_lock(&lock);}
-
-    private:
-        // node locker
-        omp_lock_t lock; //for concurrency, each node its locker.
-    };
-
-    //first version, with one level tags (label), 
-    //using lock simply
-    class CoreMaint {
-    private:
-        int n; // the number of vertices in graph.
-        graph_t graph;
-        vector<Node> V; // node information
-        
-        vector<std::atomic<counter_t>> relabel_cnt; //each list has a relabel counter
-        vector<Node> head;  //each k has a list with head     
-        inline bool Order(node_t x, node_t y, core_t k); // return x < y
-        int OrderInsert(node_t x, node_t y); // insert y after x
-        int OrderRemove(node_t x);   // remove x
-
-
-    public:
-        CoreMaint(const size_t n);
-        int EdgeInsert(const node_t x, const edge_t y); // insert to double-linked list
-        int EdgeRemove(node_t x, edge_t y); //remove in double-linked list.
-
-    };
-
-    //section version, with two level tages 
-    class CoreMaint2 {
-
-    }
-
-}
-#endif
 
 }
