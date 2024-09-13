@@ -33,7 +33,7 @@ using namespace std;
     if (!(truth)) { \
       printf("\x1b[1;31mASSERT\x1b[0m, LINE:%d, FILE:%s\n", \
              __LINE__, __FILE__); \
-      assert(false); \
+      throw new exception(); \
     } else
 
 // Similar to @ASSERT, but @ASSERT_INFO will print another line called INFO.

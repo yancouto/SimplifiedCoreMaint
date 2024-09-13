@@ -13,9 +13,6 @@ extern int cnt_edge2; // for debug
 
 namespace yan {
 
-extern const bool WITH_E2 = false;
-
-
 /********SeqCM************************************/
 SeqCM::CoreMaint::CoreMaint(size_t n, graph_t &graph, vector<core_t> &core):
         n{n}, graph{graph}, core{core}, PQ(n, V) {
@@ -544,12 +541,6 @@ int SeqCM::CoreMaint::EdgeInsert(node_t u, edge_t v) {
         return 1; // update mcd and return
     }
 
-    //init
-    if(WITH_E2) {E2.clear(); }      // with E2 to track edges
-    else {
-        //E2.clear();
-    }
-
     PQ.clear(); Vblack.clear(); Vcolor.clear();
 #ifdef WITH_SUBTAG
     PQ.push(DATA(u, V[u].tag, V[u].subtag)); V[u].inQ = true;//only support single level tag
@@ -709,12 +700,7 @@ void SeqCM::CoreMaint::Forward(node_t w){
         #endif
         }
 
-        if (WITH_E2) { // with set E2
-            E2.insert(make_pair(w, w2));
-        } else { // without set E2 
-            //E2.insert(make_pair(w, w2)); //debug
-            V[w2].color = DARK;
-        }
+        V[w2].color = DARK;
     }
 }
 
@@ -731,7 +717,7 @@ void SeqCM::CoreMaint::Backward(node_t w) { //???
     DoPre(w); //first time do black pre only;
     V[w].degout += V[w].degin; V[w].degin = 0;
 
-    if(!WITH_E2) {V[w].color = WHITE;}  /*without set E2*/
+    V[w].color = WHITE;
 
     while (!R.empty()) { // Q has nodes from BLACK to GRAY 
         node_t u = R.top(); R.pop(); V[u].inR = false; 
@@ -742,7 +728,7 @@ void SeqCM::CoreMaint::Backward(node_t w) { //???
 
         DoAdj(u);
 
-        if(!WITH_E2) {V[u].color = WHITE;}  /*without set E2*/
+        V[u].color = WHITE;
 
         OrderDelete(u); 
 #ifdef WITH_V_BLACK2GRAY
@@ -764,22 +750,8 @@ void SeqCM::CoreMaint::DoPre(node_t u) {
             erase_swap(adj[u].k_equal_korder_less, it);
             continue;
         } else ++it;
-        if(WITH_E2) {
-            auto it = E2.find(make_pair(v, u));
-            if (it == E2.end()) continue;
-            else E2.erase(it);
-        } else { // not with E2
-            
-            // bool a = false, b = false;
-            // auto it = E2.find(make_pair(v, u));
-            // if (it == E2.end()) {a = true;}
-            // else E2.erase(it);
 
-            // if (BLACK != V[v].color) {b= true;};
-            // assert(a == b);
-            // if (a || b) continue;
-            if (BLACK != V[v].color) {continue;};
-        }
+        if (BLACK != V[v].color) {continue;}
 
         V[v].degout--;
         ASSERT(V[v].degout >= 0);
@@ -792,26 +764,26 @@ void SeqCM::CoreMaint::DoPre(node_t u) {
 
 
 void SeqCM::CoreMaint::verify_adj(node_t u) {
-    return;
+    // TODO: REMOVE, this is inneficcient
+    vector<node_t> new_adj;
     auto &a = adj[u];
-    ASSERT(a.k_less.size() + a.k_more.size() + a.k_equal_korder_less.size() + a.k_equal_korder_more.size() == graph[u].size());
+    for (int v: a.k_less)
+        if(core[v] < core[u])
+            new_adj.push_back(v);
+    for(int v: a.k_equal_korder_less)
+        if(SameCoreOrder(v, u))
+            new_adj.push_back(v);
+    for(int v: a.k_equal_korder_more)
+        if(SameCoreOrder(u, v))
+            new_adj.push_back(v);
+    for(int v: a.k_more)
+        if(core[u] < core[v])
+            new_adj.push_back(v);
+    assert(new_adj.size() == graph[u].size());
     ASSERT(a.tmp_Vp_korder_less.empty());
-    int degout = V[u].degout;
-    for(int v: graph[u]) {
-        if(core[u] < core[v]) {
-            degout--;
-            //ASSERT(a.k_more.count(v) == 1);
-        } else if(core[u] > core[v]) {
-            //assert(a.k_less.count(v) == 1);
-        } else if(SameCoreOrder(u, v)) {
-            degout--;
-            //ASSERT(a.k_equal_korder_more.count(v) == 1);
-        } else {
-            assert(SameCoreOrder(v, u));
-            //ASSERT(a.k_equal_korder_less.count(v) == 1);
-        }
-    }
-    assert(degout == 0);
+    std::sort(new_adj.begin(), new_adj.end());
+    for(int v: graph[u])
+        ASSERT(std::binary_search(new_adj.begin(), new_adj.end(), v));
 }
 
 
@@ -822,21 +794,8 @@ void SeqCM::CoreMaint::DoAdj(node_t u) {
             erase_swap(adj[u].k_equal_korder_less, it);
             continue;
         } else ++it;
-        if(WITH_E2) {
-            auto it = E2.find(make_pair(v, u));
-            if (it == E2.end()) continue;
-            else E2.erase(it);
-        } else { // not with E2
-            // bool a = false, b = false;
-            // auto it = E2.find(make_pair(v, u));
-            // if (it == E2.end()) {a = true;}
-            // else E2.erase(it);
 
-            // if (BLACK != V[v].color) {b= true;};
-            // assert(a == b);
-            // if (a || b) continue;
-            if (BLACK != V[v].color) {continue;};
-        }
+        if (BLACK != V[v].color) {continue;};
 
         V[v].degout--; 
         ASSERT(V[v].degout >= 0);
@@ -852,21 +811,7 @@ void SeqCM::CoreMaint::DoAdj(node_t u) {
             erase_swap(adj[u].k_equal_korder_more, it);
             continue;
         } else ++it;
-        if(WITH_E2) {
-            auto it = E2.find(make_pair(u, v));
-            if (it == E2.end()) continue;
-            else E2.erase(it);
-        } else { // not with E2
-            // bool a = false, b = false;
-            // auto it = E2.find(make_pair(u, v));
-            // if (it == E2.end()) {a = true;}
-            // else E2.erase(it);
-
-            // if (WHITE == V[v].color) {b= true;};
-            // assert(a == b);
-            // if (a || b) continue;
-            if (WHITE == V[v].color) {continue;};
-        }
+        if (WHITE == V[v].color) {continue;}
         ASSERT(V[v].inR || SameCoreOrder(u, v));
 
         V[v].degin--;
@@ -881,140 +826,9 @@ void SeqCM::CoreMaint::DoAdj(node_t u) {
 }
 
 /*batch insert edges from m  to m2 in, return the repeated times */
-int SeqCM::CoreMaint::BatchEdgeInsert(std::vector<pair<node_t, node_t>> edges, int m, int m2){
-    // without subtag.
-#ifdef DEBUG
-    printf("Insert batch of edges from %d to %d\n", m, m2);
-#endif
-    static int repeat = 0;
-    repeat++;
-    //the remain edges that do the next iteration.
-    std::vector<pair<node_t, node_t>> edges2; edges2.reserve(100000);
-    
-    Vblack.clear(); Vcolor.clear();
-    for (int i = m; i < edges.size(); i++) {
-        auto edge = edges[i];
-        node_t u = edge.first; node_t v = edge.second;
-        if (!Order(u, v)) std::swap(u, v);
+int SeqCM::CoreMaint::BatchEdgeInsert(std::vector<pair<node_t, node_t>> edges, int m, int m2) {throw "Not implemented";}
 
-        if (V[u].degout <= core[u]) {
-            /*add edges*/
-            graph[u].push_back(v); 
-            graph[v].push_back(u);
-            V[u].degout++;
-            if (likely(V[u].degout <= core[u])) {
-                if (core[u] <= core[v]) V[u].mcd++;
-                if (core[v] <= core[u]) V[v].mcd++;
-            } else {
-                if (unlikely(!V[u].inQ)) {
-                    PQ2.push(DATA2(u, core[u], V[u].tag)); V[u].inQ = true;
-                }
-            }
-        } else {
-            edges2.push_back(edge);
-        }
-    }
-
-//#ifdef DEBUG
-    printf("    * Left %d edges \n", (int)edges2.size());
-//#endif
-
-    /******* traverse with topological order***********/
-    while (!PQ2.empty()) {
-        node_t w = PQ2.top().key; PQ2.pop();//w has the smallest order
-        if (unlikely(false == V[w].inQ) ) { continue; } //not in PQ, this is update the value of PQ.
-        else { V[w].inQ = false; }
-        
-        if (V[w].degin + V[w].degout > core[w]) { // forward
-            BatchForward(w, PQ2);
-        } else if (V[w].degin > 0){ // backward (w must has degin > 0, or w can't be in PQ)
-            Backward(w);
-        }
-
-    }
-    
-    /**ending phase**/
-#if 0 // only update the core number.
-     for (const node_t w: Vcolor) {
-         if (V[w].color == BLACK) core[w]++;
-     }
-
-#else
-    size_t next_begin = 0;
-    //get Black nodes for each core number, this has bugs. not easy to debug. 
-    //a better way is to deal with the core number one by one for each repeating. in this way the PQ has the minimum size. 
-    while (next_begin < Vcolor.size()) {  
-        core_t k = -1; size_t i;
-        for (i = next_begin; i < Vcolor.size(); i++) {
-            node_t u = Vcolor[i]; next_begin = i + 1;
-            if (likely(V[u].color == BLACK)) {
-                if (-1 == k) { // first k 
-                    k = core[u]; Vblack.push_back(u);
-                } else if (core[u] == k) { // after first
-                    Vblack.push_back(u);
-                } else { // first k+1 find to the next loop
-                    next_begin = i; break;
-                }
-            }
-        }
-
-        for (const node_t w: Vblack) {
-            core[w]++;
-            OrderDelete(w);// remove w from the order list O_k
-        }
-        
-        // insert Vb2 (ordered black nodes) to the head of O_k+1
-        MultiOrderInsert(H[k+1], Vblack);
-
-        /*update the mcd, here is not correct, but not a big problem to affect
-        * insert result and test running time*/
-        for (const node_t u: Vblack) {
-             deg_t mcd = 0;
-             for (const node_t v: graph[u]) {
-                 if (core[u] <= core[v]) mcd++;
-                 //u.core +1 for v. u->v
-                 if (BLACK != V[v].color && core[u] == core[v]) {
-                     V[v].mcd++;
-                 }
-             }
-             V[u].mcd = mcd;
-        }
-        
-        Vblack.clear();
-    }
-
-
-    //reset all color
-    for(const node_t u: Vcolor) {V[u].color = WHITE; V[u].degin = 0;}
-
-    if (!edges2.empty()) BatchEdgeInsert(edges2, 0, edges2.size());
-
-    return repeat;
-#endif 
-
-}
-
-void SeqCM::CoreMaint::BatchForward(node_t w, PRIORITY_Q2 &PQ2){
-    V[w].color = BLACK; cnt_Vs++; cnt_Vp++;// core number can be update 
-    Vcolor.push_back(w); // all colored nodes
-    for (const edge_t w2: graph[w]) { // w -> w2
-        cnt_S++;
-        if (SameCoreOrder(w, w2)) { // outgoing edges
-            V[w2].degin++;  // w is black
-            if (!V[w2].inQ) { // w2 is not in PQ
-                PQ2.push(DATA2(w2, core[w2], V[w2].tag)); V[w2].inQ = true;
-            }
-
-            if (WITH_E2) { // with set E2
-                E2.insert(make_pair(w, w2));
-            } else { // without set E2 
-                //E2.insert(make_pair(w, w2)); //debug
-                V[w2].color = DARK;
-            }
-        }
-        
-    }
-}
+void SeqCM::CoreMaint::BatchForward(node_t w, PRIORITY_Q2 &PQ2) {throw "Not implemented";}
 
 
 

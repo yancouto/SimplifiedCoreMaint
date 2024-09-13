@@ -286,6 +286,7 @@ private:
 };
 #endif 
 
+
 namespace SeqCM{
     
     class PartitionedAdjacencyList {
